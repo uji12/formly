@@ -30,8 +30,9 @@ yarn-error.log*
 # vercel
 .vercel
 
-#secrets
+#secreat
 .env
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts
