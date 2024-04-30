@@ -30,7 +30,7 @@ yarn-error.log*
 # vercel
 .vercel
 
-#secreat
+#Secret
 .env
 
 # typescript
