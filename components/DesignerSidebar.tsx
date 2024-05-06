@@ -1,16 +1,16 @@
-import { useDroppable } from '@dnd-kit/core'
-import React from 'react'
+import FormElementSidebar from './FormElementSidebar'
+import useDesigner from './hook/useDesigner'
+import PropertiesFormSidebar from './PropertiesFormSidebar'
+
 
 const DesignerSidebar = () => {
-   const droppable =useDroppable({
-    id:"designer-drop-area",
-    data:{
-        isDesignerDropArea:true
-    }
-   }) 
+  const{selectedElement} =useDesigner()
   return (
     <aside className='w-[400px] max-w-[400px] flex flex-col flex-grow gap-2 border-l-2 border-muted p-4 bg-background overflow-y-auto h-full'>
-        Elements
+       {
+        !selectedElement && <FormElementSidebar/> 
+       }
+       {selectedElement && <PropertiesFormSidebar/>}
     </aside>
   )
 }
