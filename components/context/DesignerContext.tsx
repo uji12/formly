@@ -8,7 +8,9 @@ type DesignerContextType={
     addElement:(index:number,element:FormElementInstance)=>void
     removeElement:(id:string)=>void
     selectedElement:FormElementInstance |null;
+    setElements:Dispatch<SetStateAction<FormElementInstance[]>>
     setSelectedElement:Dispatch<SetStateAction<FormElementInstance | null>>
+    updateElement:(id:string,element:FormElementInstance)=>void
 };
 export const DesignerContext = createContext<DesignerContextType|null>(null)
 export default function DesignerContextProvider({
@@ -28,11 +30,21 @@ export default function DesignerContextProvider({
     const removeElement =(id:string)=>{
         setElements((prev)=>prev.filter((element)=>element.id!==id))
     }
+    const updateElement=(id:string,element:FormElementInstance)=>{
+        setElements((pr)=>{
+            const newElements=[...pr];
+            const index = newElements.findIndex((element)=>element.id===id);
+            newElements[index]=element;
+            return newElements;
+        })
+    }
    return <DesignerContext.Provider value={{
     elements,
     addElement,
     removeElement,
     selectedElement,
+    setElements,
     setSelectedElement,
+    updateElement
    }}>{children}</DesignerContext.Provider>
 }

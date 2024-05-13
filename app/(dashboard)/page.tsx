@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle,CardFooter } 
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator"
 import Image from "next/image";
-import { JSX, Suspense } from "react";
+import { JSX, ReactNode, Suspense } from "react";
 import { LuView } from "react-icons/lu";
 import {FaWpforms} from "react-icons/fa"
 import {HiCursorClick} from "react-icons/hi"
@@ -52,7 +52,7 @@ function StatsCards({data,loading}:StatsCardProps){
      <StatsCard 
         title="Total visits"
         icon = {<LuView className="text-blue-600"/>}
-        helpertext ="All time form visits"
+        helperText="All time form visits"
         value ={data?.visits.toLocaleString() ||""}
         loading ={loading}
         className='shadow-md shadow-blue-600'
@@ -60,24 +60,24 @@ function StatsCards({data,loading}:StatsCardProps){
       <StatsCard 
         title="Total submissions"
         icon = {<FaWpforms className="text-yellow-600"/>}
-        helpertext ="All time form visits"
-        value ={data?.visits.toLocaleString() ||""}
+        helperText="All time form visits"
+        value ={data?.submissions.toLocaleString() ||""}
         loading ={loading}
         className='shadow-md shadow-yellow-600'
      />
       <StatsCard 
-        title="Submissions rate"
+        title="Submission rate"
         icon = {<HiCursorClick className="text-green-600"/>}
-        helpertext ="Visits that result in form submissions"
-        value ={data?.visits.toLocaleString()+"%"||""}
+        helperText="Visits that result in form submissions"
+        value ={data?.submisionRate.toLocaleString()+"%"||""}
         loading ={loading}
         className='shadow-md shadow-green-600'
      />
       <StatsCard 
         title="Bounce rate"
         icon = {<TbArrowBounce className="text-red-600"/>}
-        helpertext ="Visits that leaves without interacting"
-        value ={data?.visits.toLocaleString()+"%" ||""}
+        helperText="Visits that leaves without interacting"
+        value ={data?.bounceRate.toLocaleString()+"%" ||""}
         loading ={loading}
         className='shadow-md shadow-red-600'
      />
@@ -86,31 +86,47 @@ function StatsCards({data,loading}:StatsCardProps){
 interface StatProp{
   title : string
   icon : React.ReactNode
-  helpertext : string
+  helperText: string
   value : string 
   loading : boolean
   className : string
 }
-function StatsCard({title,icon,helpertext,value,loading,className}:StatProp){
-  return <Card className={className}>
-   <CardHeader className="flex flex-row items-center justify-between pb-2">
-    <CardTitle className="text-sm font-medium text-muted-foreground">{title}</CardTitle>
-    {icon}
-   </CardHeader>
-   <CardContent>
-    <div className="text-2xl font-bold">
-      {
-         loading && (
-          <Skeleton>
-          <span>0</span>
-        </Skeleton>
-      )}
-      {!loading && value}
-    </div>
-    <p className="text-xs text-muted-foreground pt-1">{helpertext}</p>
-   </CardContent>
-  </Card>
+export function StatsCard({
+  title,
+  value,
+  icon,
+  helperText,
+  loading,
+  className,
+}: {
+  title: string;
+  value: string;
+  helperText: string;
+  className: string;
+  loading: boolean;
+  icon: ReactNode;
+}) {
+  return (
+    <Card className={className}>
+      <CardHeader className="flex flex-row items-center justify-between pb-2">
+        <CardTitle className="text-sm font-medium text-muted-foreground">{title}</CardTitle>
+        {icon}
+      </CardHeader>
+      <CardContent>
+        <div className="text-2xl font-bold">
+          {loading && (
+            <Skeleton>
+              <span className="opacity-0">0</span>
+            </Skeleton>
+          )}
+          {!loading && value}
+        </div>
+        <p className="text-xs text-muted-foreground pt-1">{helperText}</p>
+      </CardContent>
+    </Card>
+  );
 }
+
 function FormCardSkeleton(){
   return <Skeleton className="border-2 border-primary/20 h-[190px] w-full"/>
 }

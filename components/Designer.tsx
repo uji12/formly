@@ -1,36 +1,90 @@
-'use client'
-//timing 1:45:25 //remaining -> 2:42:41
-import React, { useState } from 'react'
-import DesignerSidebar from './DesignerSidebar'
-import { DragEndEvent, useDndMonitor, useDraggable, useDroppable } from '@dnd-kit/core'
-import { cn } from '@/lib/utils'
-import { ElementsType, FormElementInstance, FormElements } from './FormElements'
-import useDesigner from './hook/useDesigner'
-import { idGenerator } from '@/lib/idGenerator'
-import { Button } from './ui/button'
-import { BiSolidTrash } from 'react-icons/bi'
+"use client";
+
+import React, { useState } from "react";
+import DesignerSidebar from "./DesignerSidebar";
+import { DragEndEvent, useDndMonitor, useDraggable, useDroppable } from "@dnd-kit/core";
+import { cn } from "@/lib/utils";
+import useDesigner from "./hook/useDesigner";
+import { ElementsType, FormElementInstance, FormElements } from "./FormElements";
+import { idGenerator } from "@/lib/idGenerator";
+import { Button } from "./ui/button";
+import { BiSolidTrash } from "react-icons/bi";
 
 const Designer = () => {
-  const {elements,addElement,selectedElement,setSelectedElement } = useDesigner()
-  const droppable =useDroppable({
-    id:"designer-drop-area",
-    data:{
-        isDesignerDropArea:true,
+  const {elements,addElement,selectedElement,setSelectedElement ,removeElement} = useDesigner()
+  const droppable = useDroppable({
+    id: "designer-drop-area",
+    data: {
+      isDesignerDropArea: true,
     },
-   });
-   console.log('Elements',elements);
-   useDndMonitor({
+  });
+
+  //  console.log('Elements',elements);
+  useDndMonitor({
     onDragEnd:(event:DragEndEvent)=>{
       const {active,over} =event;
+      // console.log(event);
       if(!active || !over) return ;
       const isDesignBtnElement= active.data?.current?.isDesignerBtnElement;
-      if(isDesignBtnElement){
+      const isDroppingOverDesignerDropArea =over.data?.current?.isDesignerDropArea;
+      const droppingSidebarBtnOverDesignerDropArea =isDesignBtnElement && isDroppingOverDesignerDropArea;
+      //First scenario :dropping a sidebar btn element over the designer drop area
+     if(droppingSidebarBtnOverDesignerDropArea){
          const type = active.data?.current?.type;
          const newElement = FormElements[type as ElementsType].construct(idGenerator())
-         addElement(0,newElement);
+         addElement(elements.length,newElement);
+         return
       }
-    }
+      const isDroppingOverDesignerElementTopHalf= over.data?.current?.isTopHalfDesignerElement;
+      const isDroppingOverDesignerElementBottomHalf= over.data?.current?.isBottomHalfDesignerElement;
+      const  isDroppingOverDesignerElement= isDroppingOverDesignerElementTopHalf||isDroppingOverDesignerElementBottomHalf;
+      const droppingSidebarBtnOverDesignerElement = isDesignBtnElement && isDroppingOverDesignerElement;
+     //second scenario
+      if(droppingSidebarBtnOverDesignerElement){
+        const type = active.data?.current?.type;
+         const newElement = FormElements[type as ElementsType].construct(idGenerator())
+         const overId = over.data?.current?.elementId;
+        //  console.log(over);
+         const overElementIndex= elements.findIndex((el)=>el.id===overId);
+         if(overElementIndex===-1){ throw new Error('element not found');}
+         let indexForNewElement=overElementIndex; // i assume i'm on top-half
+         if(isDroppingOverDesignerElementBottomHalf) {indexForNewElement=overElementIndex+1 ;}
+         addElement(indexForNewElement,newElement);
+         return
+      }
+      //third scenario
+      const isDraggingDesignerElement = active.data?.current?.isDesignerElement;
+
+      const draggingDesignerElementOverAnotherDesignerElement =
+        isDroppingOverDesignerElement && isDraggingDesignerElement;
+
+      if (draggingDesignerElementOverAnotherDesignerElement) {
+        const activeId = active.data?.current?.elementId;
+        const overId = over.data?.current?.elementId;
+
+        const activeElementIndex = elements.findIndex((el) => el.id === activeId);
+        // console.log('hello--',activeElementIndex)
+        const overElementIndex = elements.findIndex((el) => el.id === overId);
+        // console.log('bye--',overElementIndex)
+        if (activeElementIndex === -1 || overElementIndex === -1) {
+          throw new Error("element not found");
+        }
+
+        const activeElement = { ...elements[activeElementIndex] };
+        // console.log('hi',activeElement)
+        removeElement(activeId);
+
+        let indexForNewElement = overElementIndex; // i assume i'm on top-half
+        if (isDroppingOverDesignerElementBottomHalf) {
+          indexForNewElement = overElementIndex + 1;
+        }
+
+        addElement(indexForNewElement, activeElement);
+        return
+      }
+    },
    })
+   
   return (
     <div className='flex w-full h-full'>
         <div className="p-4 w-full "
@@ -39,7 +93,7 @@ const Designer = () => {
         }}
         >
             <div ref={droppable.setNodeRef} className={cn("bg-background max-w-[920px] h-full m-auto rounded-xl flex flex-col flex-grow items-center justify-start overflow-y-auto",
-              droppable.isOver && "ring-2 ring-primary/20"
+              droppable.isOver && "ring-4 ring-primary ring-inset"
           )}>
                 {!droppable.isOver&& elements.length===0&&<p className='text-4xl text-muted-foreground flex flex-grow items-center font-bold'>
                      Drop here
@@ -65,84 +119,91 @@ const Designer = () => {
   )
 }
 
-function DesignerElementWrapper ({element}:{element:FormElementInstance}){
-  const {removeElement,selectedElement,setSelectedElement} = useDesigner();
-  const DesignerElement=FormElements[element.type].designerComponent;
-  const [mouseIsOver,setMouseIsOver] = useState<boolean>(false)
-  const tophalf =useDroppable({
-    id:element.id+'_top',
-    data:{
-      type:element.type,
-      elementId:element.id,
-      isTopHalfDesignerElement:true,
-    }
-  })
-  const bottomhalf =useDroppable({
-    id:element.id+'_bottom',
-    data:{
-      type:element.type,
-      elementId:element.id,
-      isbottomHalfDesignerElement:true,
-    }
-  })
-  const {setNodeRef,listeners,attributes,isDragging} =useDraggable({
+function DesignerElementWrapper({ element }: { element: FormElementInstance }) {
+  const { removeElement, selectedElement, setSelectedElement } = useDesigner();
 
-    id:element.id+'_drag-handler',
-    data:{
-      type:element.type,
-      elementId:element.id,
-      isDesignerElement:true,
-    }
-  })
-  if(isDragging) return null;
-return (
-<div 
-  ref={setNodeRef} 
-  {...listeners}
-  {...attributes}
-className='relative h-[120px] flex flex-col text-foreground hover:cursor-pointer rounded-md ring-1 ring-accent ring-inset'
-onMouseEnter={()=>setMouseIsOver(true)}
-onMouseLeave={()=>setMouseIsOver(false)}
-onClick={(e)=>{
-  e.stopPropagation();
-  setSelectedElement(element);
-}}
->
-    <div ref={tophalf.setNodeRef} className="absolute w-full h-1/2 rounded-t-md"/>
-    <div ref={bottomhalf.setNodeRef} className='absolute w-full bottom-0 h-1/2 rounded-b-md'/>
-    {
-       mouseIsOver &&(
+  const [mouseIsOver, setMouseIsOver] = useState<boolean>(false);
+  const topHalf = useDroppable({
+    id: element.id + "-top",
+    data: {
+      type: element.type,
+      elementId: element.id,
+      isTopHalfDesignerElement: true,
+    },
+  });
+
+  const bottomHalf = useDroppable({
+    id: element.id + "-bottom",
+    data: {
+      type: element.type,
+      elementId: element.id,
+      isBottomHalfDesignerElement: true,
+    },
+  });
+
+  const draggable = useDraggable({
+    id: element.id + "-drag-handler",
+    data: {
+      type: element.type,
+      elementId: element.id,
+      isDesignerElement: true,
+    },
+  });
+
+  if (draggable.isDragging) return null; // temporary remove the element from designer
+
+  const DesignerElement = FormElements[element.type].designerComponent;
+  return (
+    <div
+      ref={draggable.setNodeRef}
+      {...draggable.listeners}
+      {...draggable.attributes}
+      className="relative h-[120px] flex flex-col text-foreground hover:cursor-pointer rounded-md ring-1 ring-accent ring-inset"
+      onMouseEnter={() => {
+        setMouseIsOver(true);
+      }}
+      onMouseLeave={() => {
+        setMouseIsOver(false);
+      }}
+      onClick={(e) => {
+        e.stopPropagation();
+        setSelectedElement(element);
+      }}
+    >
+      <div ref={topHalf.setNodeRef} className="absolute w-full h-1/2 rounded-t-md" />
+      <div ref={bottomHalf.setNodeRef} className="absolute  w-full bottom-0 h-1/2 rounded-b-md" />
+      {mouseIsOver && (
         <>
-        <div className="absolute right-0 h-full">
-           <Button className='flex justify-center h-full border rounded-md rounded-l-none bg-red-500' variant={'outline'}
-           onClick={(e)=>{
-            e.stopPropagation(); 
-            removeElement(element.id)
-           }
-          }
-           >
-             <BiSolidTrash className='h-6 w-6'/>
-           </Button>
-        </div>
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 animate-pulse">
-          <p>Click for properties or drag to move</p>
-        </div>
+          <div className="absolute right-0 h-full">
+            <Button
+              className="flex justify-center h-full border rounded-md rounded-l-none bg-red-500"
+              variant={"outline"}
+              onClick={(e) => {
+                e.stopPropagation(); // avoid selection of element while deleting
+                removeElement(element.id);
+              }}
+            >
+              <BiSolidTrash className="h-6 w-6" />
+            </Button>
+          </div>
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 animate-pulse">
+            <p className="text-muted-foreground text-sm">Click for properties or drag to move</p>
+          </div>
         </>
-      )
-    }
-    {
-      tophalf.isOver && <div className='absolute top-0 w-full rounded-md h-[7px] bg-primary rounded-b-none'/>
-    }
-    <div className={cn("flex w-full h-[120px] items-center rounded-md bg-accent/40 px-4 py-2 pointer-events-none",mouseIsOver&&'opacity-30',)}>
-      <DesignerElement elementInstance={element}/>  
+      )}
+      {topHalf.isOver && <div className="absolute top-0 w-full rounded-md h-[7px] bg-primary rounded-b-none" />}
+      <div
+        className={cn(
+          "flex w-full h-[120px] items-center rounded-md bg-accent/40 px-4 py-2 pointer-events-none opacity-100",
+          mouseIsOver && "opacity-30",
+        )}
+      >
+        <DesignerElement elementInstance={element} />
+      </div>
+      {bottomHalf.isOver && <div className="absolute bottom-0 w-full rounded-md h-[7px] bg-primary rounded-t-none" />}
     </div>
-    {
-      bottomhalf.isOver &&<div className='absolute bottom-0 w-full rounded-md h-[7px] bg-primary rounded-t-none'/>
-
-    }
-</div>  
-)}
-
+  );
+}
   
 export default Designer
 

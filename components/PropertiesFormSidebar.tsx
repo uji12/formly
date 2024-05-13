@@ -4,6 +4,7 @@ import useDesigner from './hook/useDesigner'
 import { FormElements } from './FormElements';
 import { Button } from './ui/button';
 import { AiOutlineClose } from "react-icons/ai";
+import { Separator } from './ui/separator';
 const PropertiesFormSidebar = () => {
     const{selectedElement,setSelectedElement} =useDesigner()
     if(!selectedElement) return null;
@@ -21,6 +22,7 @@ const PropertiesFormSidebar = () => {
                 <AiOutlineClose/>
             </Button>
         </div>
+        <Separator className='mb-4'/>
         <PropertiesForm elementInstance={selectedElement}/>
     </div>
   )
